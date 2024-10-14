@@ -1,0 +1,12 @@
+APScheduler==3.6.3
+cachetools==4.2.2
+certifi==2024.8.30
+charset-normalizer==3.4.0
+idna==3.10
+python-telegram-bot==13.12
+pytz==2024.2
+requests==2.32.3
+six==1.16.0
+tornado==6.4.1
+tzlocal==5.2
+urllib3==2.2.3
