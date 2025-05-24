@@ -18,32 +18,27 @@ TOKEN = os.environ.get("TELEGRAM_TOKEN") or "7826192630:AAGyqFR3BlRE_-Wi8lUtC7w8
 updater = Updater(token=TOKEN, use_context=True)
 # Удаляем возможный webhook перед polling
 updater.bot.delete_webhook()
-
 dispatcher = updater.dispatcher
 
 # Генерация клавиатур
 def build_account_keyboard():
-    buttons = [
+    return InlineKeyboardMarkup([
         [InlineKeyboardButton("Revolut", callback_data="Revolut")],
         [InlineKeyboardButton("BCC", callback_data="BCC")],
         [InlineKeyboardButton("Alta", callback_data="Alta")],
         [InlineKeyboardButton("Тиньков", callback_data="Тиньков")],
         [InlineKeyboardButton("Другое", callback_data="other_account")],
-    ]
-    return InlineKeyboardMarkup(buttons)
-
+    ])
 
 def build_currency_keyboard():
-    buttons = [
+    return InlineKeyboardMarkup([
         [InlineKeyboardButton("Euro", callback_data="Euro"), InlineKeyboardButton("RSD", callback_data="RSD")],
         [InlineKeyboardButton("USD", callback_data="USD"), InlineKeyboardButton("руб", callback_data="руб")],
         [InlineKeyboardButton("pounds", callback_data="pounds"), InlineKeyboardButton("tenge", callback_data="tenge")],
-    ]
-    return InlineKeyboardMarkup(buttons)
-
+    ])
 
 def build_category_keyboard():
-    buttons = [
+    return InlineKeyboardMarkup([
         [InlineKeyboardButton("🍲 Еда", callback_data="🍲 Еда"), InlineKeyboardButton("🥐☕️ Кофе", callback_data="🥐☕️ Кофе")],
         [InlineKeyboardButton("🛒 Grocery", callback_data="🛒 Grocery"), InlineKeyboardButton("🧺 Бытовые", callback_data="🧺 Бытовые")],
         [InlineKeyboardButton("🚕 Транспорт", callback_data="🚕 Транспорт"), InlineKeyboardButton("🏥 Здоровье", callback_data="🏥 Здоровье")],
@@ -52,21 +47,19 @@ def build_category_keyboard():
         [InlineKeyboardButton("💔 Благотворительные", callback_data="💔 Благотворительные"), InlineKeyboardButton("🏠 Аренда", callback_data="🏠 Аренда")],
         [InlineKeyboardButton("📱 Подписки", callback_data="📱 Подписки"), InlineKeyboardButton("💄 Beauty", callback_data="💄 Beauty")],
         [InlineKeyboardButton("Другое", callback_data="other_category")],
-    ]
-    return InlineKeyboardMarkup(buttons)
+    ])
 
-# Обработчики шагов
+# Обработчики
+
 def start(update: Update, context: CallbackContext) -> int:
     logger.info("User %s started conversation", update.effective_user.id)
     update.message.reply_text('Привет! Введи название расхода:')
     return NAME
 
-
 def ask_name(update: Update, context: CallbackContext) -> int:
     context.user_data['name'] = update.message.text
     update.message.reply_text('Введите сумму расхода:')
     return AMOUNT
-
 
 def ask_amount(update: Update, context: CallbackContext) -> int:
     try:
@@ -77,47 +70,41 @@ def ask_amount(update: Update, context: CallbackContext) -> int:
         update.message.reply_text('Пожалуйста, введите корректную сумму.')
         return AMOUNT
 
-
 def ask_account(update: Update, context: CallbackContext) -> int:
     query = update.callback_query
     query.answer()
     selection = query.data
     if selection == 'other_account':
-        context.bot.send_message(chat_id=update.effective_chat.id, text="Введите другой счёт:")
+        query.edit_message_text('Введите другой счёт:')
         return OTHER_ACCOUNT
     context.user_data['account'] = selection
-    context.bot.send_message(chat_id=update.effective_chat.id, text="Выберите валюту расхода:", reply_markup=build_currency_keyboard())
+    query.edit_message_text('Выберите валюту расхода:', reply_markup=build_currency_keyboard())
     return CURRENCY
-
 
 def handle_other_account(update: Update, context: CallbackContext) -> int:
     context.user_data['account'] = update.message.text
-    context.bot.send_message(chat_id=update.effective_chat.id, text="Выберите валюту расхода:", reply_markup=build_currency_keyboard())
+    update.message.reply_text('Выберите валюту расхода:', reply_markup=build_currency_keyboard())
     return CURRENCY
-
 
 def ask_currency(update: Update, context: CallbackContext) -> int:
     query = update.callback_query
     query.answer()
     context.user_data['currency'] = query.data
-    query.edit_message_text(text="Выберите категорию:", reply_markup=build_category_keyboard())
+    query.edit_message_text('Выберите категорию:', reply_markup=build_category_keyboard())
     return CATEGORY
-
 
 def ask_category(update: Update, context: CallbackContext) -> int:
     query = update.callback_query
     query.answer()
     if query.data == 'other_category':
-        context.bot.send_message(chat_id=update.effective_chat.id, text="Введите другую категорию:")
+        query.edit_message_text('Введите другую категорию:')
         return OTHER_CATEGORY
     context.user_data['category'] = query.data
     return send_data(update, context)
 
-
 def handle_other_category(update: Update, context: CallbackContext) -> int:
     context.user_data['category'] = update.message.text
     return send_data(update, context)
-
 
 def send_data(update: Update, context: CallbackContext) -> int:
     payload = {
@@ -127,26 +114,28 @@ def send_data(update: Update, context: CallbackContext) -> int:
         'валюта расхода': context.user_data['currency'],
         'Категория': context.user_data['category']
     }
+    logger.info(f"Отправка данных: %s", payload)
     try:
         response = requests.post(
             'https://script.google.com/macros/s/AKfycbyEMTwPPvCqg4YjhjbikdIvwBo2TmePEBPYeqfBShQ9-XYlaOeuqro1bui2xjB0OfxJSg/exec',
             data=payload
         )
+        logger.info(f"Response status: %s, text: %s", response.status_code, response.text)
         if response.ok:
-            context.bot.send_message(chat_id=update.effective_chat.id, text="Данные успешно отправлены!")
+            update.effective_message.reply_text("Данные успешно отправлены!")
         else:
-            context.bot.send_message(chat_id=update.effective_chat.id, text="Ошибка при отправке данных.")
+            update.effective_message.reply_text("Ошибка при отправке данных.")
     except Exception as e:
-        context.bot.send_message(chat_id=update.effective_chat.id, text=f"Ошибка запроса: {e}")
+        logger.error("Ошибка при запросе: %s", e)
+        update.effective_message.reply_text(f"Ошибка запроса: {e}")
     return ConversationHandler.END
-
 
 def cancel(update: Update, context: CallbackContext) -> int:
     update.message.reply_text('Операция отменена.')
     return ConversationHandler.END
 
-
 # Точка входа
+
 def main():
     conv = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
@@ -159,8 +148,7 @@ def main():
             CATEGORY: [CallbackQueryHandler(ask_category)],
             OTHER_CATEGORY: [MessageHandler(Filters.text & ~Filters.command, handle_other_category)],
         },
-        fallbacks=[CommandHandler('cancel', cancel)],
-        per_message=False  # чтобы CallbackQueryHandler отслеживался
+        fallbacks=[CommandHandler('cancel', cancel)]
     )
     dispatcher.add_handler(conv)
     updater.start_polling()
