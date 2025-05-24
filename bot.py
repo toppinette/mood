@@ -20,6 +20,18 @@ updater = Updater(token=TOKEN, use_context=True)
 updater.bot.delete_webhook(drop_pending_updates=True)  # сброс всех webhooks и очереди обновлений
 dispatcher = updater.dispatcher
 
+# Игнорируем ошибки Conflict, чтобы бот не падал при пересечении getUpdates
+import telegram
+
+def error_handler(update, context):
+    err = context.error
+    if isinstance(err, telegram.error.Conflict):
+        logger.warning("Conflict ignored: %s", err)
+        return
+    logger.error("Unhandled error: %s", err, exc_info=True)
+
+dispatcher.add_error_handler(error_handler)
+
 # Генерация клавиатур
 def build_account_keyboard():
     return InlineKeyboardMarkup([
@@ -156,4 +168,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
