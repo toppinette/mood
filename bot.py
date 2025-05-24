@@ -17,7 +17,7 @@ TOKEN = os.environ.get("TELEGRAM_TOKEN") or "7826192630:AAGyqFR3BlRE_-Wi8lUtC7w8
 # Инициализация
 updater = Updater(token=TOKEN, use_context=True)
 # Удаляем возможный webhook перед polling
-updater.bot.delete_webhook()
+updater.bot.delete_webhook(drop_pending_updates=True)  # сброс всех webhooks и очереди обновлений
 dispatcher = updater.dispatcher
 
 # Генерация клавиатур
@@ -151,9 +151,8 @@ def main():
         fallbacks=[CommandHandler('cancel', cancel)]
     )
     dispatcher.add_handler(conv)
-    updater.start_polling()
+    updater.start_polling(drop_pending_updates=True)  # отбросить старые апдейты и начать чисто
     updater.idle()
 
 if __name__ == '__main__':
     main()
-
