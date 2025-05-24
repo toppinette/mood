@@ -1,22 +1,27 @@
 import os
+import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler, CallbackQueryHandler
 import requests
 
+# Логирование
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Шаги состояния
 NAME, AMOUNT, ACCOUNT, CURRENCY, CATEGORY, OTHER_ACCOUNT, OTHER_CATEGORY = range(7)
 
-# Токен бота
-TOKEN = os.environ.get("TELEGRAM_TOKEN")  # Используем переменную окружения
+# Токен бота. Фоллбек на явный токен, если переменная окружения не установлена
+TOKEN = os.environ.get("TELEGRAM_TOKEN") or "7826192630:AAGyqFR3BlRE_-Wi8lUtC7w8X46dWM07hw0"
 
 # Инициализация
 updater = Updater(token=TOKEN, use_context=True)
-# Сброс webhooks, чтобы polling не конфликтовал
+# Удаляем возможный webhook перед polling
 updater.bot.delete_webhook()
+
 dispatcher = updater.dispatcher
 
 # Генерация клавиатур
-
 def build_account_keyboard():
     buttons = [
         [InlineKeyboardButton("Revolut", callback_data="Revolut")],
@@ -50,20 +55,18 @@ def build_category_keyboard():
     ]
     return InlineKeyboardMarkup(buttons)
 
-# Запускаем разговор
-
+# Обработчики шагов
 def start(update: Update, context: CallbackContext) -> int:
+    logger.info("User %s started conversation", update.effective_user.id)
     update.message.reply_text('Привет! Введи название расхода:')
     return NAME
 
-# Шаг: название
 
 def ask_name(update: Update, context: CallbackContext) -> int:
     context.user_data['name'] = update.message.text
     update.message.reply_text('Введите сумму расхода:')
     return AMOUNT
 
-# Шаг: сумма
 
 def ask_amount(update: Update, context: CallbackContext) -> int:
     try:
@@ -74,7 +77,6 @@ def ask_amount(update: Update, context: CallbackContext) -> int:
         update.message.reply_text('Пожалуйста, введите корректную сумму.')
         return AMOUNT
 
-# Шаг: выбор счёта
 
 def ask_account(update: Update, context: CallbackContext) -> int:
     query = update.callback_query
@@ -87,14 +89,12 @@ def ask_account(update: Update, context: CallbackContext) -> int:
     context.bot.send_message(chat_id=update.effective_chat.id, text="Выберите валюту расхода:", reply_markup=build_currency_keyboard())
     return CURRENCY
 
-# Шаг: ввод другого счёта
 
 def handle_other_account(update: Update, context: CallbackContext) -> int:
     context.user_data['account'] = update.message.text
     context.bot.send_message(chat_id=update.effective_chat.id, text="Выберите валюту расхода:", reply_markup=build_currency_keyboard())
     return CURRENCY
 
-# Шаг: выбор валюты
 
 def ask_currency(update: Update, context: CallbackContext) -> int:
     query = update.callback_query
@@ -103,7 +103,6 @@ def ask_currency(update: Update, context: CallbackContext) -> int:
     query.edit_message_text(text="Выберите категорию:", reply_markup=build_category_keyboard())
     return CATEGORY
 
-# Шаг: выбор категории
 
 def ask_category(update: Update, context: CallbackContext) -> int:
     query = update.callback_query
@@ -114,13 +113,11 @@ def ask_category(update: Update, context: CallbackContext) -> int:
     context.user_data['category'] = query.data
     return send_data(update, context)
 
-# Шаг: ввод другой категории
 
 def handle_other_category(update: Update, context: CallbackContext) -> int:
     context.user_data['category'] = update.message.text
     return send_data(update, context)
 
-# Отправка данных
 
 def send_data(update: Update, context: CallbackContext) -> int:
     payload = {
@@ -143,14 +140,13 @@ def send_data(update: Update, context: CallbackContext) -> int:
         context.bot.send_message(chat_id=update.effective_chat.id, text=f"Ошибка запроса: {e}")
     return ConversationHandler.END
 
-# Отмена
 
 def cancel(update: Update, context: CallbackContext) -> int:
     update.message.reply_text('Операция отменена.')
     return ConversationHandler.END
 
-# Main
 
+# Точка входа
 def main():
     conv = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
@@ -163,7 +159,8 @@ def main():
             CATEGORY: [CallbackQueryHandler(ask_category)],
             OTHER_CATEGORY: [MessageHandler(Filters.text & ~Filters.command, handle_other_category)],
         },
-        fallbacks=[CommandHandler('cancel', cancel)]
+        fallbacks=[CommandHandler('cancel', cancel)],
+        per_message=False  # чтобы CallbackQueryHandler отслеживался
     )
     dispatcher.add_handler(conv)
     updater.start_polling()
@@ -171,3 +168,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
