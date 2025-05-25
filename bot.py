@@ -38,7 +38,7 @@ def build_account_keyboard():
 def build_currency_keyboard():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("Euro", callback_data="Euro"), InlineKeyboardButton("RSD", callback_data="RSD")],
-        [InlineKeyboardButton("USD", callback_data="USD"), InlineKeyboardButton("руб", callback_data="руб")],
+        [InlineKeyboardButton("Dollars", callback_data="Dollars"), InlineKeyboardButton("руб", callback_data="руб")],
         [InlineKeyboardButton("pounds", callback_data="pounds"), InlineKeyboardButton("tenge", callback_data="tenge")],
     ])
 
@@ -170,4 +170,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
