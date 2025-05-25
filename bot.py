@@ -34,13 +34,14 @@ def build_currency_keyboard():
 
 def build_category_keyboard():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🍲 Еда", callback_data="🍲 Еда"), InlineKeyboardButton("🥐☕️ Кофе", callback_data="🥐☕️ Кофе")],
-        [InlineKeyboardButton("🛒 Grocery", callback_data="🛒 Grocery"), InlineKeyboardButton("🧺 Бытовые", callback_data="🧺 Бытовые")],
-        [InlineKeyboardButton("🚕 Транспорт", callback_data="🚕 Транспорт"), InlineKeyboardButton("🏥 Здоровье", callback_data="🏥 Здоровье")],
         [InlineKeyboardButton("✈️ Путешествия", callback_data="✈️ Путешествия"), InlineKeyboardButton("💃 Развлечения", callback_data="💃 Развлечения")],
         [InlineKeyboardButton("🚰 Коммуналка", callback_data="🚰 Коммуналка"), InlineKeyboardButton("🎁 Подарки", callback_data="🎁 Подарки")],
         [InlineKeyboardButton("💔 Благотворительные", callback_data="💔 Благотворительные"), InlineKeyboardButton("🏠 Аренда", callback_data="🏠 Аренда")],
         [InlineKeyboardButton("📱 Подписки", callback_data="📱 Подписки"), InlineKeyboardButton("💄 Beauty", callback_data="💄 Beauty")],
+        [InlineKeyboardButton("💸 Переводы", callback_data="💸 Переводы"), InlineKeyboardButton("👛 Кэш", callback_data="👛 Кэш")],
+        [InlineKeyboardButton("🍲 Еда", callback_data="🍲 Еда"), InlineKeyboardButton("🥐☕️ Кофе", callback_data="🥐☕️ Кофе")],
+        [InlineKeyboardButton("🛒 Grocery", callback_data="🛒 Grocery"), InlineKeyboardButton("🧺 Бытовые", callback_data="🧺 Бытовые")],
+        [InlineKeyboardButton("🚕 Транспорт", callback_data="🚕 Транспорт"), InlineKeyboardButton("🏥 Здоровье", callback_data="🏥 Здоровье")],
         [InlineKeyboardButton("Другое", callback_data="other_category")],
     ])
 
