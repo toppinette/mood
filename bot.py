@@ -29,7 +29,7 @@ def build_currency_keyboard():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("Euro", callback_data="Euro"), InlineKeyboardButton("RSD", callback_data="RSD")],
         [InlineKeyboardButton("pounds", callback_data="pounds"), InlineKeyboardButton("руб", callback_data="руб")],
-        [InlineKeyboardButton("USD", callback_data="USD"), InlineKeyboardButton("tenge", callback_data="tenge")],
+        [InlineKeyboardButton("bucks", callback_data="bucks"), InlineKeyboardButton("tenge", callback_data="tenge")],
     ])
 
 def build_category_keyboard():
@@ -149,7 +149,8 @@ def main():
     )
 
     app.add_handler(conv)
-    app.run_polling()
+    app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
     main()
+
