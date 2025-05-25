@@ -1,19 +1,3 @@
-# .gitignore
-__pycache__/
-*.pyc
-.env
-.env.*
-.DS_Store
-
-# requirements.txt
-python-telegram-bot==13.15
-requests
-
-# Procfile
-worker: python bot.py
-
-# bot.py (основной код ниже)
-
 import os
 import logging
 import requests
