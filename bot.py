@@ -1,27 +1,28 @@
 import os
 import logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler, CallbackQueryHandler
 import requests
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (
+    Updater, CommandHandler, MessageHandler, Filters,
+    CallbackContext, ConversationHandler, CallbackQueryHandler
+)
+import telegram
 
 # Логирование
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Шаги состояния
+# Шаги состояний
 NAME, AMOUNT, ACCOUNT, CURRENCY, CATEGORY, OTHER_ACCOUNT, OTHER_CATEGORY = range(7)
 
-# Токен бота. Фоллбек на явный токен, если переменная окружения не установлена
+# Токен бота
 TOKEN = os.environ.get("TELEGRAM_TOKEN") or "7826192630:AAGyqFR3BlRE_-Wi8lUtC7w8X46dWM07hw0"
 
 # Инициализация
 updater = Updater(token=TOKEN, use_context=True)
-# Удаляем возможный webhook перед polling
-updater.bot.delete_webhook(drop_pending_updates=True)  # сброс всех webhooks и очереди обновлений
 dispatcher = updater.dispatcher
 
-# Игнорируем ошибки Conflict, чтобы бот не падал при пересечении getUpdates
-import telegram
+# Обработка конфликтов getUpdates
 
 def error_handler(update, context):
     err = context.error
@@ -32,7 +33,8 @@ def error_handler(update, context):
 
 dispatcher.add_error_handler(error_handler)
 
-# Генерация клавиатур
+# Клавиатуры
+
 def build_account_keyboard():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("Revolut", callback_data="Revolut")],
@@ -61,7 +63,7 @@ def build_category_keyboard():
         [InlineKeyboardButton("Другое", callback_data="other_category")],
     ])
 
-# Обработчики
+# Хендлеры
 
 def start(update: Update, context: CallbackContext) -> int:
     logger.info("User %s started conversation", update.effective_user.id)
@@ -149,6 +151,9 @@ def cancel(update: Update, context: CallbackContext) -> int:
 # Точка входа
 
 def main():
+    # Сброс старых вебхуков (если вдруг остались)
+    updater.bot.delete_webhook(drop_pending_updates=True)
+
     conv = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
@@ -162,9 +167,12 @@ def main():
         },
         fallbacks=[CommandHandler('cancel', cancel)]
     )
+
     dispatcher.add_handler(conv)
-    updater.start_polling(drop_pending_updates=True)  # отбросить старые апдейты и начать чисто
+
+    updater.start_polling()
     updater.idle()
 
 if __name__ == '__main__':
     main()
+
