@@ -3,10 +3,9 @@ import logging
 import requests
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
-    Updater, CommandHandler, MessageHandler, Filters,
-    CallbackContext, ConversationHandler, CallbackQueryHandler
+    ApplicationBuilder, CommandHandler, MessageHandler, filters,
+    ContextTypes, ConversationHandler, CallbackQueryHandler
 )
-import telegram
 
 # Логирование
 logging.basicConfig(level=logging.INFO)
@@ -14,15 +13,6 @@ logger = logging.getLogger(__name__)
 
 # Шаги состояний
 NAME, AMOUNT, ACCOUNT, CURRENCY, CATEGORY, OTHER_ACCOUNT, OTHER_CATEGORY = range(7)
-
-# Обработка конфликтов getUpdates
-
-def error_handler(update, context):
-    err = context.error
-    if isinstance(err, telegram.error.Conflict):
-        logger.warning("Conflict ignored: %s", err)
-        return
-    logger.error("Unhandled error: %s", err, exc_info=True)
 
 # Клавиатуры
 
@@ -38,8 +28,7 @@ def build_account_keyboard():
 def build_currency_keyboard():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("Euro", callback_data="Euro"), InlineKeyboardButton("RSD", callback_data="RSD")],
-        InlineKeyboardButton("руб", callback_data="руб")],
-            [InlineKeyboardButton("pounds", callback_data="pounds"),
+        [InlineKeyboardButton("pounds", callback_data="pounds"), InlineKeyboardButton("руб", callback_data="руб")],
         [InlineKeyboardButton("USD", callback_data="USD"), InlineKeyboardButton("tenge", callback_data="tenge")],
     ])
 
@@ -57,62 +46,61 @@ def build_category_keyboard():
 
 # Хендлеры
 
-def start(update: Update, context: CallbackContext) -> int:
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     logger.info("User %s started conversation", update.effective_user.id)
-    update.message.reply_text('Привет! Введи название расхода:')
+    await update.message.reply_text("Привет! Введи название расхода:")
     return NAME
 
-def ask_name(update: Update, context: CallbackContext) -> int:
+async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data['name'] = update.message.text
-    update.message.reply_text('Введите сумму расхода:')
+    await update.message.reply_text("Введите сумму расхода:")
     return AMOUNT
 
-def ask_amount(update: Update, context: CallbackContext) -> int:
+async def ask_amount(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     try:
         context.user_data['amount'] = float(update.message.text)
-        update.message.reply_text('Выберите счёт:', reply_markup=build_account_keyboard())
+        await update.message.reply_text("Выберите счёт:", reply_markup=build_account_keyboard())
         return ACCOUNT
     except ValueError:
-        update.message.reply_text('Пожалуйста, введите корректную сумму.')
+        await update.message.reply_text("Пожалуйста, введите корректную сумму.")
         return AMOUNT
 
-def ask_account(update: Update, context: CallbackContext) -> int:
+async def ask_account(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
-    query.answer()
-    selection = query.data
-    if selection == 'other_account':
-        query.edit_message_text('Введите другой счёт:')
+    await query.answer()
+    if query.data == 'other_account':
+        await query.edit_message_text("Введите другой счёт:")
         return OTHER_ACCOUNT
-    context.user_data['account'] = selection
-    query.edit_message_text('Выберите валюту расхода:', reply_markup=build_currency_keyboard())
+    context.user_data['account'] = query.data
+    await query.edit_message_text("Выберите валюту расхода:", reply_markup=build_currency_keyboard())
     return CURRENCY
 
-def handle_other_account(update: Update, context: CallbackContext) -> int:
+async def handle_other_account(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data['account'] = update.message.text
-    update.message.reply_text('Выберите валюту расхода:', reply_markup=build_currency_keyboard())
+    await update.message.reply_text("Выберите валюту расхода:", reply_markup=build_currency_keyboard())
     return CURRENCY
 
-def ask_currency(update: Update, context: CallbackContext) -> int:
+async def ask_currency(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
-    query.answer()
+    await query.answer()
     context.user_data['currency'] = query.data
-    query.edit_message_text('Выберите категорию:', reply_markup=build_category_keyboard())
+    await query.edit_message_text("Выберите категорию:", reply_markup=build_category_keyboard())
     return CATEGORY
 
-def ask_category(update: Update, context: CallbackContext) -> int:
+async def ask_category(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
-    query.answer()
+    await query.answer()
     if query.data == 'other_category':
-        query.edit_message_text('Введите другую категорию:')
+        await query.edit_message_text("Введите другую категорию:")
         return OTHER_CATEGORY
     context.user_data['category'] = query.data
-    return send_data(update, context)
+    return await send_data(update, context)
 
-def handle_other_category(update: Update, context: CallbackContext) -> int:
+async def handle_other_category(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data['category'] = update.message.text
-    return send_data(update, context)
+    return await send_data(update, context)
 
-def send_data(update: Update, context: CallbackContext) -> int:
+async def send_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     payload = {
         'Название расхода': context.user_data['name'],
         'Сумма расхода': context.user_data['amount'],
@@ -128,47 +116,40 @@ def send_data(update: Update, context: CallbackContext) -> int:
         )
         logger.info(f"Response status: %s, text: %s", response.status_code, response.text)
         if response.ok:
-            update.effective_message.reply_text("Данные успешно отправлены!")
+            await update.effective_message.reply_text("Данные успешно отправлены!")
         else:
-            update.effective_message.reply_text("Ошибка при отправке данных.")
+            await update.effective_message.reply_text("Ошибка при отправке данных.")
     except Exception as e:
         logger.error("Ошибка при запросе: %s", e)
-        update.effective_message.reply_text(f"Ошибка запроса: {e}")
+        await update.effective_message.reply_text(f"Ошибка запроса: {e}")
     return ConversationHandler.END
 
-def cancel(update: Update, context: CallbackContext) -> int:
-    update.message.reply_text('Операция отменена.')
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text("Операция отменена.")
     return ConversationHandler.END
 
 # Точка входа
 
 def main():
-    TOKEN = os.environ.get("TELEGRAM_TOKEN") or "7826192630:AAGyqFR3BlRE_-Wi8lUtC7w8X46dWM07hw0"
-    updater = Updater(token=TOKEN, use_context=True)
-    dispatcher = updater.dispatcher
-
-    updater.bot.delete_webhook(drop_pending_updates=True)
-    dispatcher.add_error_handler(error_handler)
+    token = os.environ.get("TELEGRAM_TOKEN") or "7826192630:AAGyqFR3BlRE_-Wi8lUtC7w8X46dWM07hw0"
+    app = ApplicationBuilder().token(token).build()
 
     conv = ConversationHandler(
-        entry_points=[CommandHandler('start', start)],
+        entry_points=[CommandHandler("start", start)],
         states={
-            NAME: [MessageHandler(Filters.text & ~Filters.command, ask_name)],
-            AMOUNT: [MessageHandler(Filters.text & ~Filters.command, ask_amount)],
+            NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_name)],
+            AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_amount)],
             ACCOUNT: [CallbackQueryHandler(ask_account)],
-            OTHER_ACCOUNT: [MessageHandler(Filters.text & ~Filters.command, handle_other_account)],
+            OTHER_ACCOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_other_account)],
             CURRENCY: [CallbackQueryHandler(ask_currency)],
             CATEGORY: [CallbackQueryHandler(ask_category)],
-            OTHER_CATEGORY: [MessageHandler(Filters.text & ~Filters.command, handle_other_category)],
+            OTHER_CATEGORY: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_other_category)],
         },
-        fallbacks=[CommandHandler('cancel', cancel)]
+        fallbacks=[CommandHandler("cancel", cancel)]
     )
 
-    dispatcher.add_handler(conv)
+    app.add_handler(conv)
+    app.run_polling()
 
-    updater.start_polling()
-    updater.idle()
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
-
