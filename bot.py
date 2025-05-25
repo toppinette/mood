@@ -1,3 +1,19 @@
+# .gitignore
+__pycache__/
+*.pyc
+.env
+.env.*
+.DS_Store
+
+# requirements.txt
+python-telegram-bot==13.15
+requests
+
+# Procfile
+worker: python bot.py
+
+# bot.py (основной код ниже)
+
 import os
 import logging
 import requests
@@ -15,13 +31,6 @@ logger = logging.getLogger(__name__)
 # Шаги состояний
 NAME, AMOUNT, ACCOUNT, CURRENCY, CATEGORY, OTHER_ACCOUNT, OTHER_CATEGORY = range(7)
 
-# Токен бота
-TOKEN = os.environ.get("TELEGRAM_TOKEN") or "7826192630:AAGyqFR3BlRE_-Wi8lUtC7w8X46dWM07hw0"
-
-# Инициализация
-updater = Updater(token=TOKEN, use_context=True)
-dispatcher = updater.dispatcher
-
 # Обработка конфликтов getUpdates
 
 def error_handler(update, context):
@@ -30,8 +39,6 @@ def error_handler(update, context):
         logger.warning("Conflict ignored: %s", err)
         return
     logger.error("Unhandled error: %s", err, exc_info=True)
-
-dispatcher.add_error_handler(error_handler)
 
 # Клавиатуры
 
@@ -151,8 +158,12 @@ def cancel(update: Update, context: CallbackContext) -> int:
 # Точка входа
 
 def main():
-    # Сброс старых вебхуков (если вдруг остались)
+    TOKEN = os.environ.get("TELEGRAM_TOKEN") or "7826192630:AAGyqFR3BlRE_-Wi8lUtC7w8X46dWM07hw0"
+    updater = Updater(token=TOKEN, use_context=True)
+    dispatcher = updater.dispatcher
+
     updater.bot.delete_webhook(drop_pending_updates=True)
+    dispatcher.add_error_handler(error_handler)
 
     conv = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
