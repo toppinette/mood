@@ -29,7 +29,7 @@ def build_currency_keyboard():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("Euro", callback_data="Euro"), InlineKeyboardButton("RSD", callback_data="RSD")],
         [InlineKeyboardButton("pounds", callback_data="pounds"), InlineKeyboardButton("руб", callback_data="руб")],
-        [InlineKeyboardButton("bucks", callback_data="bucks"), InlineKeyboardButton("tenge", callback_data="tenge")],
+        [InlineKeyboardButton("amer", callback_data="amer"), InlineKeyboardButton("tenge", callback_data="tenge")],
     ])
 
 def build_category_keyboard():
