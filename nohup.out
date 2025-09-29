@@ -1,5 +1,0 @@
-  File "/Users/rekshinskaya/Desktop/bot/bot.py", line 52
-    def start(update: Update, context: CallbackContext) -> int:
-                                                               ^
-IndentationError: unindent does not match any outer indentation level
-/Library/Frameworks/Python.framework/Versions/3.11/Resources/Python.app/Contents/MacOS/Python: can't open file '/Users/rekshinskaya/Desktop/bot/telegram_expense_bot_refactor.py': [Errno 2] No such file or directory
